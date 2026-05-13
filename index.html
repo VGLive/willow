@@ -1,116 +1,68 @@
-<!DOCTYPE html>  
-<html>  
-<head>  
-  <meta charset="UTF-8">  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-  <title>Willow Sports</title>
-  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/VGLive/willow/refs/heads/main/willow.png">
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.ui.min.js"></script>  
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/controls.css"/>  
-  <style>  
-   * { margin: 0; padding: 0; box-sizing: border-box; }  
-    html, body {  
-      background: #000;  
-      height: 100vh;  
-      width: 100vw;  
-      overflow: hidden;  
-      font-family: system-ui, -apple-system, sans-serif;  
-    }  
-    .shaka-video-container {  
-      position: absolute;  
-      inset: 0;  
-      width: 100%;  
-      height: 100%;  
-    }  
-    video {  
-      width: 100%;  
-      height: 100%;  
-      background: #000;  
-      object-fit: contain;  
-    }  
-    .shaka-spinner-container,  
-    .shaka-spinner,  
-    .shaka-spinner-svg {  
-      display: none !important;  
-      visibility: hidden !important;  
-      opacity: 0 !important;  
-    }  
-  </style>  
-  </head>  
-  <body>  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Willow Sports</title>
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/VGLive/willow/refs/heads/main/willow.png">
+<script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.ui.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/controls.css"/>
 
-<div class="shaka-video-container" id="player-container">
-<video id="video" autoplay muted playsinline preload="metadata"></video>
-<div class="custom-watermark"> </div>
-</div>  
-    
-  <script>  
-    document.addEventListener('DOMContentLoaded', async () => {  
-      shaka.polyfill.installAll();  
-  
-      if (!shaka.Player.isBrowserSupported()) {  
-        console.error('Browser not supported');  
-        return;  
-      }  
-  
-      const video = document.querySelector('video');  
-      const player = new shaka.Player();  
-      await player.attach(video);  
-  
-      const container = document.querySelector('.shaka-video-container');  
-      const ui = new shaka.ui.Overlay(player, container, video);  
-  
-      ui.configure({
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+.shaka-video-container{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
+video{width:100%;height:100%;object-fit:contain;background:#000}
+</style>
+</head>
+<body>
+
+<div class="shaka-video-container" id="c">
+<video id="v" autoplay muted playsinline preload="metadata"></video>
+</div>
+
+<script>
+(function(){
+  const C = {
+    url: "https://otte.cache.aiv-cdn.net/syd-nitro/live/dash/enc/tll6uwepxa/out/v1/a7f67cbb33df46539312956427343886/cenc.mpd",
+    kid: "290e09c837da78d5cd961978d390515c",
+    key: "b748836c71e6a4ca68ef5b5652db6247"
+  };
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    shaka.polyfill.installAll();
+    if (!shaka.Player.isBrowserSupported()) return;
+
+    const v = document.getElementById("v"), c = document.getElementById("c");
+    v.muted = true;
+
+    const p = new shaka.Player(), ui = new shaka.ui.Overlay(p, c, v);
+    await p.attach(v);
+
+    ui.configure({
         addBigPlayButton: true,
         addSeekBar: false,
         controlPanelElements: ['play_pause','time_and_duration','mute','volume','spacer','fullscreen','overflow_menu'],
         seekBarColors: { base: 'white', buffered: 'red', played: 'green' }
-      });      
-  
-      let drmConfig = {  
-        clearKeys: {  
-          "290e09c837da78d5cd961978d390515c": "b748836c71e6a4ca68ef5b5652db6247"  
-        }  
-      };  
-  
-      let streamUrl = "https://otte.cache.aiv-cdn.net/syd-nitro/live/dash/enc/tll6uwepxa/out/v1/a7f67cbb33df46539312956427343886/cenc.mpd";  
-  
-      player.configure({  
-        drm: drmConfig,  
-        streaming: {  
-          lowLatencyMode: true,  
-          bufferingGoal: 15,  
-          rebufferingGoal: 2,  
-          bufferBehind: 15,  
-          retryParameters: {  
-            timeout: 10000,  
-            maxAttempts: 5,  
-            baseDelay: 300,  
-            backoffFactor: 1.2  
-          },  
-          segmentRequestTimeout: 8000,  
-          segmentPrefetchLimit: 2,  
-          useNativeHlsOnSafari: true  
-        },  
-        manifest: {  
-          retryParameters: {  
-            timeout: 8000,  
-            maxAttempts: 3  
-          }  
-        }  
-      });  
-  
-      player.addEventListener('error', (event) => {  
-        console.error('Shaka Player Error:', event.detail);  
-      });  
-  
-      try {  
-        await player.load(streamUrl);  
-        console.log("Stream loaded successfully");  
-      } catch (error) {  
-        console.error('Load error:', error);  
-      }  
-    });  
-  </script>  
-</body>  
+      });
+    
+    p.configure({
+      drm: { clearKeys: { [C.kid]: C.key } },
+      manifest: { defaultPresentationDelay: 5 },
+      streaming: { lowLatencyMode: true, bufferingGoal: 10, rebufferingGoal: 2, safeSeekOffset: 5 }
+    });
+
+    try {
+      await p.load(C.url);
+      v.play().catch(()=>{});
+    } catch(e) {
+      console.error("Error loading video", e);
+    }
+
+    v.addEventListener("play", () => { v.muted = true; }, { once: true });
+  });
+})();
+</script>
+</body>
 </html>
